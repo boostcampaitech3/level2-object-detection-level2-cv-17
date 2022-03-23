@@ -1,7 +1,0 @@
-## Background
-
-
-## Content
-
-
-## Details
