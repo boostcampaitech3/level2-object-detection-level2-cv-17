@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/boostcampaitech3/level2-object-detection-level2-cv-17/issues/new?template=issue_template.md
     about: Please use this default template
   - name: 🐞 Bug Report
-    url: https://github.com/boostcampaitech3/level2-object-detection-level2-cv-17/issues/new?template=bug_report.md
+    url: https://github.com/boostcampaitech3/level2-object-detection-level2-cv-17/issues/new?template=bug.md
     about: Please report your bug
