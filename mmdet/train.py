@@ -159,8 +159,8 @@ def main(fold, args ):
     datasets = [build_dataset(cfg.data.train)]
     model = build_detector(
         cfg.model,
-        # train_cfg=cfg.get('train_cfg'),
-        # test_cfg=cfg.get('test_cfg')
+        train_cfg=cfg.get('train_cfg'),
+        test_cfg=cfg.get('test_cfg')
         )
     model.init_weights()
 
