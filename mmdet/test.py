@@ -225,7 +225,9 @@ def main():
     submission = pd.DataFrame()
     submission['PredictionString'] = prediction_strings
     submission['image_id'] = file_names
-    submission.to_csv(os.path.join(fold, f'submission_epoch_{args.epoch}.csv'), index=None)
+    submission_path = checkpoint_path.split('epoch')[0]
+    epoch = checkpoint_path.split('/')[-1][:-4]
+    submission.to_csv(os.path.join(submission_path, f'submission_{epoch}.csv'), index=None)
     submission.head()
 
 
