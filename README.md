@@ -68,9 +68,9 @@ optional arguments:
 해당 사용 내용은 help에 자세하게 적혀 있습니다. 간단히 적자면 cfg dict의 값들에 접근해서 config의 옵션을 command line에서 바꿔주기 위한 설정들입니다. 
 
 ### Train comand 
-- basic
+- basic  
 `python train.py --config ./configs/_base_/cascade_rcnn_swin224_pafpn_1x.py `
-- more example
+- more example  
 `python train.py --config ./configs/_base_/cascade_rcnn_swin224_pafpn_1x.py --cfg-options checkpoint_config.max_keep_ckpts=3 runner.max_epochs=30`
 
 ## Test
@@ -141,9 +141,9 @@ optional arguments:
 해당 사용 내용은 help에 자세하게 적혀 있습니다. 간단히 적자면 cfg dict의 값들에 접근해서 config의 옵션을 command line에서 바꿔주기 위한 설정들입니다.
 
 ### Test command
-- basic
+- basic  
 `python test.py --config ./configs/_base_/cascade_rcnn_swin224_pafpn_1x.py`
-- more example
+- more example  
 `python test.py --config ./configs/_base_/cascade_rcnn_swin224_pafpn_1x.py --checkpoint_path /opt/ml/detection/level2-object-detection-level2-cv-17/mmdet/work_dirs/exp31/Fold3/epoch_30.pth --cfg-options data.test.piepline.1.img_scale="(224,224)" --TTA`
 
 

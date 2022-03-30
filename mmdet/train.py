@@ -114,8 +114,7 @@ def main(fold, args ):
     # dump config
     # cfg.dump(osp.join(workdir, osp.basename(args.config)))
 
-    cfg.log_config['hooks'][1]['init_kwargs']['config'] = args # 즉, 우리가 args로 바꿔주는 것만 wandb에 로깅된다.
-    
+    cfg.log_config['hooks'][1]['init_kwargs']['config'] = cfg    
 
     # init the logger before other steps
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
