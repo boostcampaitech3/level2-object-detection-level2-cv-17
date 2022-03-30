@@ -7,7 +7,6 @@ import time
 import warnings
 from utils import increment_path
 import os
-import wandb
 
 import mmcv
 import torch
@@ -25,50 +24,38 @@ from mmdet.utils import collect_env, get_root_logger, setup_multi_processes
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config',default = '/opt/ml/detection/_boost_/configs/_base_/faster_rcnn_r50_fpn_1x_coco.py', help='train config file path')
-    parser.add_argument('--workdir', default = './work_dirs',help='the dir to save logs and models')
-    parser.add_argument(
-        '--resume-from', help='the checkpoint file to resume from')
-    parser.add_argument(
-        '--auto-resume',
-        action='store_true',
-        help='resume from the latest checkpoint automatically')
+    parser.add_argument('--workdir', default = './work_dirs',help='the root dir to save logs and models about each experiment')
+   
     parser.add_argument(
         '--no-validate',
         action='store_true',
+        dest = 'no_validate',
         help='whether not to evaluate the checkpoint during training')
 
-    cfg_parser = parser.add_mutually_exclusive_group()
-    cfg_parser.add_argument(
-        '--img_scale',
-        nargs='+',
-        action=DictAction,
-        help='(Deprecated, please use --gpu-id) number of gpus to use '
-        '(only applicable to non-distributed training)')
-
-
-    group_gpus = parser.add_mutually_exclusive_group()
-    group_gpus.add_argument(
-        '--gpus',
-        type=int,
-        help='(Deprecated, please use --gpu-id) number of gpus to use '
-        '(only applicable to non-distributed training)')
-    group_gpus.add_argument(
-        '--gpu-ids',
-        type=int,
-        nargs='+',
-        help='(Deprecated, please use --gpu-id) ids of gpus to use '
-        '(only applicable to non-distributed training)')
-    group_gpus.add_argument(
-        '--gpu-id',
-        type=int,
-        default=0,
-        help='id of gpu to use '
-        '(only applicable to non-distributed training)')
     parser.add_argument('--seed', type=int, default=42, help='random seed')
-    parser.add_argument(
-        '--deterministic',
-        action='store_true',
-        help='whether to set deterministic options for CUDNN backend.')
+
+    parser.add_argument('--tags', nargs='+', default=[],
+        help ='record your experiment speical keywords into tags list'
+        '--tags batch_size=16 swin_cascasde'
+        "dont use white space in specific tag") 
+
+    parser.add_argument('--kfold',dest = 'kfold', action='store_true', help='wheter use K-fold Cross-Validation') 
+    parser.add_argument('--no-kfold', dest = 'kfold',  action='store_false')
+    parser.set_defaults(kfold=True)
+    # use : command --kfold -> kfold = True
+    # default kfold args.kfold is True 
+    # if you don't want kfold, use command option --no-kfold
+
+    parser.add_argument('--fold', type=int, default=1, help='if no kfold cross validation, you must set fold number')
+
+    parser.add_argument('--wandb', dest = 'wandb', action='store_true', help='wandb logging')
+    parser.add_argument('--no-wandb', dest = 'wandb',  action='store_false')
+    parser.set_defaults(wandb=True)
+    
+    parser.add_argument('--checkpoint_path',  help='if you want to use pretrained detector, write your path')
+
+
+    # config options
     parser.add_argument(
         '--options',
         nargs='+',
@@ -86,15 +73,8 @@ def parse_args():
         'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
         'Note that the quotation marks are necessary and that no white space '
         'is allowed.')
-    parser.add_argument(
-        '--launcher',
-        choices=['none', 'pytorch', 'slurm', 'mpi'],
-        default='none',
-        help='job launcher')
-    parser.add_argument('--local_rank', type=int, default=0)
+
     args, unknown = parser.parse_known_args()
-    if 'LOCAL_RANK' not in os.environ:
-        os.environ['LOCAL_RANK'] = str(args.local_rank)
 
     if args.options and args.cfg_options:
         raise ValueError(
@@ -108,9 +88,7 @@ def parse_args():
 
 
 
-def main(fold,workdir):
-
-    args = parse_args()
+def main(fold, args ):
 
     cfg = Config.fromfile(args.config)
 
@@ -120,58 +98,23 @@ def main(fold,workdir):
     # set multi-process settings
     setup_multi_processes(cfg)
 
+    # set gpu_id
+    cfg.gpu_ids = [0]
+
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
 
-    # # work_dir is determined in this priority: CLI > segment in file > filename
-    # if args.work_dir is not None:
-    #     # update configs according to CLI args if args.work_dir is not None
-    #     cfg.work_dir = args.work_dir
-    # elif cfg.get('work_dir', None) is None:
-    #     # use config filename as default work_dir if cfg.work_dir is None
-    #     cfg.work_dir = osp.join('./work_dirs',
-    #                             osp.splitext(osp.basename(args.config))[0])
-    
-    
-    
-    if args.resume_from is not None:
-        cfg.resume_from = args.resume_from
-    cfg.auto_resume = args.auto_resume
-    if args.gpus is not None:
-        cfg._ids = range(1)
-        warnings.warn('`--gpus` is deprecated because we only support '
-                      'single GPU mode in non-distributed training. '
-                      'Use `gpus=1` now.')
-    if args.gpu_ids is not None:
-        cfg.gpu_ids = args.gpu_ids[0:1]
-        warnings.warn('`--gpu-ids` is deprecated, please use `--gpu-id`. '
-                      'Because we only support single GPU mode in '
-                      'non-distributed training. Use the first GPU '
-                      'in `gpu_ids` now.')
-    if args.gpus is None and args.gpu_ids is None:
-        cfg.gpu_ids = [args.gpu_id]
+    # exp_num path
+    workdir = increment_path(os.path.join(args.workdir, 'exp'))
 
-   
-
-    # init distributed env first, since logger depends on the dist info.
-    if args.launcher == 'none':
-        distributed = False
-    else:
-        distributed = True
-        init_dist(args.launcher, **cfg.dist_params)
-        # re-set gpu_ids with distributed training mode
-        _, world_size = get_dist_info()
-        cfg.gpu_ids = range(world_size)
-
-
-    # create work_dir
+    # create work_dir -> ./workdir if you already set, comment out this line
     mmcv.mkdir_or_exist(osp.abspath(workdir))
 
     # dump config
-    cfg.dump(osp.join(workdir, osp.basename(args.config)))
+    # cfg.dump(osp.join(workdir, osp.basename(args.config)))
 
-    cfg.log_config['hooks'][1]['init_kwargs']['config'] = cfg
+    cfg.log_config['hooks'][1]['init_kwargs']['config'] = args # 즉, 우리가 args로 바꿔주는 것만 wandb에 로깅된다.
     
 
     # init the logger before other steps
@@ -180,77 +123,67 @@ def main(fold,workdir):
     logger = get_root_logger(log_file=log_file, log_level=cfg.log_level)
 
 
-    
-
-    # init the meta dict to record some important information such as
-    # environment info and seed, which will be logged
-    meta = dict()
-    # # log env info
-    # env_info_dict = collect_env()
-    # env_info = '\n'.join([(f'{k}: {v}') for k, v in env_info_dict.items()])
-    # dash_line = '-' * 60 + '\n'
-    # logger.info('Environment info:\n' + dash_line + env_info + '\n' +
-    #             dash_line)
-    # meta['env_info'] = env_info
-    # meta['config'] = cfg.pretty_text
-    # # log some basic info
-    # logger.info(f'Distributed training: {distributed}')
-    # logger.info(f'Config:\n{cfg.pretty_text}')
-
-    # cfg.pretty text때문인듯
-
     # set random seeds
     seed = init_random_seed(args.seed)
     logger.info(f'Set random seed to {seed}, '
-                f'deterministic: {args.deterministic}')
-    set_random_seed(seed, deterministic=args.deterministic)
+                f'deterministic: {True}')
+    set_random_seed(seed, deterministic=True)
     cfg.seed = seed
-    meta['seed'] = seed
-    meta['exp_name'] = osp.basename(args.config)
 
     
     # train_kfold
-    cfg.data.train.ann_file = cfg.json_root + f'train_{fold}.json' # train json 정보
-    cfg.data.val.ann_file = cfg.json_root + f'val_{fold}.json'
+    if args.no_validate: # 즉, no_validate를 하게 되면 validate안쓰면 무조건 all data로 학습시킨다는 의미.
+        cfg.data.train.ann_file = '/opt/ml/detection/dataset/train.json'
+        fold = '_all_data'
+    
+    else:
+        cfg.data.train.ann_file = cfg.json_root + f'train_{fold}.json' 
+        cfg.data.val.ann_file = cfg.json_root + f'val_{fold}.json' 
+        
     cfg.work_dir = workdir + f'/Fold{fold}'
+
+    # wandb kfold setting
     cfg.log_config['hooks'][1]['init_kwargs']['group'] = workdir.split('/')[-1]
     cfg.log_config['hooks'][1]['init_kwargs']['job_type'] = f'Fold{fold}'
+    cfg.log_config['hooks'][1]['init_kwargs']['name'] = workdir.split('/')[-1] + f'Fold{fold}'
+    cfg.log_config['hooks'][1]['init_kwargs']['tags'] = args.tags #args를 그냥 보내서 바뀐 것들은 이걸로 표현해도 나쁘진 않을 듯.
+    # 만약 wandb의 config는 맞음 그게
 
-    cfg.data.train_pipeline = cfg.train_pipeline
 
+    if not args.wandb : # args.wandb is False -> wandb don't work maybe default = True
+        cfg.log_config['hooks']=[dict(type='TextLoggerHook')]
+       
+    if args.checkpoint_path:
+        load_checkpoint(model, args.checkpoint_path, map_location='cpu')
+
+    # build dataset & model
+    datasets = [build_dataset(cfg.data.train)]
     model = build_detector(
         cfg.model,
         # train_cfg=cfg.get('train_cfg'),
         # test_cfg=cfg.get('test_cfg')
         )
     model.init_weights()
-    datasets = [build_dataset(cfg.data.train)]
-    if len(cfg.workflow) == 2:
-        val_dataset = copy.deepcopy(cfg.data.val)
-        val_dataset.pipeline = cfg.data.train.pipeline
-        datasets.append(build_dataset(val_dataset))
-    if cfg.checkpoint_config is not None:
-        # save mmdet version, config file content and class names in
-        # checkpoints as meta data
-        cfg.checkpoint_config.meta = dict(
-            mmdet_version=__version__ + get_git_hash()[:7],
-            CLASSES=datasets[0].CLASSES)
-    # add an attribute for visualization convenience
-    model.CLASSES = datasets[0].CLASSES
+
     train_detector(
         model,
         datasets,
         cfg,
-        distributed=distributed,
-        validate=(not args.no_validate),
-        timestamp=timestamp,
-        meta=meta)
+        validate=(not args.no_validate))
+
 
 if __name__ == '__main__':
-    workdir = increment_path(os.path.join('./work_dirs', 'exp'))
+    args = parse_args()
 
-    # k-fold-----------------------------------  
-    num_folds = 5
-    for fold in range(1,num_folds+1):
-        main(fold,workdir)
+    print(args.wandb)
+
+    if args.kfold == True and args.no_validate == False :
+        num_folds = 5
+        for fold in range(1,num_folds+1):
+            main(fold, args)
+    else:   
+        fold = args.fold
+        main(fold, args)
+
+
 

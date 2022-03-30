@@ -4,4 +4,8 @@ exp/
 work_dirs/
 sweep.yaml
 temp.py
-test.py
+cal_normalize.py
+train_refactor.py
+test_refactor.py
+test.ipynb
+python_test.py

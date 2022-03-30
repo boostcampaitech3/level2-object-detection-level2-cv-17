@@ -1,4 +1,4 @@
-checkpoint_config = dict(interval=1, max_keep_ckpts = 10)
+checkpoint_config = dict(interval=2, max_keep_ckpts = 5)
 # yapf:disable
 log_config = dict(
     interval=50,
@@ -14,7 +14,6 @@ log_config = dict(
                 # job_type = f'Fold{fold}',
                 reinit = True
             ),
-            # with_step = False
             )
     ])
 # yapf:enable

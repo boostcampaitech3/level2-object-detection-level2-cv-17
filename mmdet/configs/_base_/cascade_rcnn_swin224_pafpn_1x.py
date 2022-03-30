@@ -1,6 +1,6 @@
 _base_ = [
     '../models/cascade_rcnn_swin_pafpn.py',
-    '../datasets/coco_detection.py',
+    '../datasets/dataset.py',
     '../schedules/schedule_1x.py', '../default_runtime.py'
 ]
 
@@ -31,4 +31,7 @@ model = dict(
 )
 
 # Mixed Precision training
-fp16 = dict(loss_scale=512.)
+# fp16 = dict(loss_scale=512.)
+# if you want to use fp16, you need top set meta
+
+

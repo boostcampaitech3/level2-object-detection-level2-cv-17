@@ -14,7 +14,7 @@ img_norm_cfg = dict(
 train_pipeline = [
         dict(type='LoadImageFromFile'),
         dict(type='LoadAnnotations', with_bbox=True),
-        dict(type='Resize', img_scale=(256,256), keep_ratio=True),
+        dict(type='Resize', img_scale=(512,512), keep_ratio=True),
         dict(type='RandomFlip', flip_ratio=0.5),
         dict(type='Normalize', **img_norm_cfg),
         dict(type='Pad', size_divisor=32),
@@ -26,7 +26,7 @@ val_pipeline = [
         dict(type='LoadImageFromFile'),
         dict(
             type='MultiScaleFlipAug',
-            img_scale=(256, 256),
+            img_scale=(1024, 1024),
             flip=False,
             transforms=[
                 dict(type='Resize', keep_ratio=True),
@@ -42,8 +42,9 @@ test_pipeline = [
         dict(type='LoadImageFromFile'),
         dict(
             type='MultiScaleFlipAug',
-            img_scale=(512, 512),
-            flip=False,
+            img_scale=[(1024, 1024),(512,512),(1333,800)],
+            flip= False,
+            flip_direction =  ["horizontal", "vertical" ,"diagonal"],
             transforms=[
                 dict(type='Resize', keep_ratio=True),
                 dict(type='RandomFlip'),
@@ -54,7 +55,7 @@ test_pipeline = [
             ])
     ]
 data = dict(
-    samples_per_gpu=32,
+    samples_per_gpu=16,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,
