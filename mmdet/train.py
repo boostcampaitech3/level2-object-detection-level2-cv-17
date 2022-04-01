@@ -11,7 +11,7 @@ import os
 import mmcv
 import torch
 from mmcv import Config, DictAction
-from mmcv.runner import get_dist_info, init_dist
+from mmcv.runner import get_dist_info, init_dist, load_checkpoint
 from mmcv.utils import get_git_hash
 
 from mmdet import __version__
@@ -173,8 +173,6 @@ def main(fold, args ):
 
 if __name__ == '__main__':
     args = parse_args()
-
-    print(args.wandb)
 
     if args.kfold == True and args.no_validate == False :
         num_folds = 5
