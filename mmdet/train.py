@@ -160,7 +160,7 @@ def main(fold, args ):
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg')
         )
-    # model.init_weights()
+    model.init_weights()
 
     if args.checkpoint_path:
         load_checkpoint(model, args.checkpoint_path, map_location='cpu')
