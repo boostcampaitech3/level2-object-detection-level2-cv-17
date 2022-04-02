@@ -1,4 +1,4 @@
-# mmdet/datasets/builder.py 에서 line 76 cp_cfg.pop('type')
+# mmdet/datasets/builder.py line 76 cp_cfg.pop('type')
 # 하단에 cp_cfg.pop('ann_file') 추가해줘야함.
 # 무슨 문제인지.. mmdetection에 issue올려바도 될 듯
 

@@ -152,8 +152,6 @@ def main(fold, args ):
     if not args.wandb : # args.wandb is False -> wandb don't work maybe default = True
         cfg.log_config['hooks']=[dict(type='TextLoggerHook')]
        
-    if args.checkpoint_path:
-        load_checkpoint(model, args.checkpoint_path, map_location='cpu')
 
     # build dataset & model
     datasets = [build_dataset(cfg.data.train)]
@@ -162,7 +160,10 @@ def main(fold, args ):
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg')
         )
-    model.init_weights()
+    # model.init_weights()
+
+    if args.checkpoint_path:
+        load_checkpoint(model, args.checkpoint_path, map_location='cpu')
 
     train_detector(
         model,

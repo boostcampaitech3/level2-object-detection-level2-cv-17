@@ -1,7 +1,7 @@
-checkpoint_config = dict(interval=2, max_keep_ckpts = 5)
+checkpoint_config = dict(interval=3, max_keep_ckpts = 1)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=100,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='NumClassCheckHook'),

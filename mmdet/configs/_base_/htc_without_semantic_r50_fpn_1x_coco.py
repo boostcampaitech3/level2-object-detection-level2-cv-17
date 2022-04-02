@@ -1,29 +1,27 @@
+_base_ = [
+    '../datasets/dataset_alb.py',
+    '../schedules/schedule_1x.py', '../default_runtime.py'
+]
+
+# htc_without_mask_r50_fpn.py
 # model settings
 model = dict(
-    type='CascadeRCNN',
+    type='HybridTaskCascade',
     backbone=dict(
-        type='SwinTransformer',
-        embed_dims=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        mlp_ratio=4,
-        qkv_bias=True,
-        qk_scale=None,
-        drop_rate=0.,
-        attn_drop_rate=0.,
-        drop_path_rate=0.2,
-        patch_norm=True,
+        type='ResNet',
+        depth=50,
+        num_stages=4,
         out_indices=(0, 1, 2, 3),
-        with_cp=False,
-        convert_weights=True,
-        init_cfg=dict(type='Pretrained',checkpoint='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window7_224_22k.pth' )),#checkpoint= 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth' )),
+        # frozen_stages=1,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=True,
+        style='pytorch',
+        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')),
     neck=dict(
-        type='PAFPN',
-        in_channels=[96, 192, 384, 768],
+        type='FPN',
+        in_channels=[256, 512, 1024, 2048],
         out_channels=256,
-        num_outs=5
-        ),
+        num_outs=5),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -41,7 +39,8 @@ model = dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
-        type='CascadeRoIHead',
+        type='HybridTaskCascadeRoIHead',
+        interleaved=True,
         num_stages=3,
         stage_loss_weights=[1, 0.5, 0.25],
         bbox_roi_extractor=dict(
@@ -65,9 +64,8 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                reg_decoded_bbox=True,
-                loss_bbox=dict(type='CIoULoss', 
-                               loss_weight=10.0)),
+                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                               loss_weight=1.0)),
             dict(
                 type='Shared2FCBBoxHead',
                 in_channels=256,
@@ -83,9 +81,8 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                reg_decoded_bbox=True,
-                loss_bbox=dict(type='CIoULoss', 
-                               loss_weight=10.0)),
+                loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
+                               loss_weight=1.0)),
             dict(
                 type='Shared2FCBBoxHead',
                 in_channels=256,
@@ -101,8 +98,7 @@ model = dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=False,
                     loss_weight=1.0),
-                reg_decoded_bbox=True,
-                loss_bbox=dict(type='CIoULoss',  loss_weight=10.0))
+                loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))
         ]),
     # model training and testing settings
     train_cfg=dict(
@@ -112,7 +108,6 @@ model = dict(
                 pos_iou_thr=0.7,
                 neg_iou_thr=0.3,
                 min_pos_iou=0.3,
-                match_low_quality=True,
                 ignore_iof_thr=-1),
             sampler=dict(
                 type='RandomSampler',
@@ -135,7 +130,6 @@ model = dict(
                     pos_iou_thr=0.5,
                     neg_iou_thr=0.5,
                     min_pos_iou=0.5,
-                    match_low_quality=False,
                     ignore_iof_thr=-1),
                 sampler=dict(
                     type='RandomSampler',
@@ -151,7 +145,6 @@ model = dict(
                     pos_iou_thr=0.6,
                     neg_iou_thr=0.6,
                     min_pos_iou=0.6,
-                    match_low_quality=False,
                     ignore_iof_thr=-1),
                 sampler=dict(
                     type='RandomSampler',
@@ -167,7 +160,6 @@ model = dict(
                     pos_iou_thr=0.7,
                     neg_iou_thr=0.7,
                     min_pos_iou=0.7,
-                    match_low_quality=False,
                     ignore_iof_thr=-1),
                 sampler=dict(
                     type='RandomSampler',
@@ -187,5 +179,4 @@ model = dict(
         rcnn=dict(
             score_thr=0.001,
             nms=dict(type='nms', iou_threshold=0.5),
-            max_per_img=100))
-    )   
+            max_per_img=100)))
