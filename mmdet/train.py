@@ -136,7 +136,11 @@ def main(fold, args ):
         fold = '_all_data'
     
     else:
-        cfg.data.train.ann_file = cfg.json_root + f'train_{fold}.json' 
+        # if mix dataset input, dataset ann_file is modified
+        if cfg.data.train.ann_file:
+            cfg.data.train.ann_file = cfg.json_root + f'train_{fold}.json' 
+        else:
+            cfg.data.train.dataset.ann_file = cfg.json_root + f'train_{fold}.json' 
         cfg.data.val.ann_file = cfg.json_root + f'val_{fold}.json' 
         
     cfg.work_dir = workdir + f'/Fold{fold}'
