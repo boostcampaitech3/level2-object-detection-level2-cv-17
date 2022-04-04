@@ -137,7 +137,7 @@ def main(fold, args ):
     
     else:
         # if mix dataset input, dataset ann_file is modified
-        if cfg.data.train.ann_file:
+        if 'ann_file' in cfg.data.train.keys():
             cfg.data.train.ann_file = cfg.json_root + f'train_{fold}.json' 
         else:
             cfg.data.train.dataset.ann_file = cfg.json_root + f'train_{fold}.json' 
