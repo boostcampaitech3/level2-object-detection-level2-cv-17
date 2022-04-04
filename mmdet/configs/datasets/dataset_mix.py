@@ -1,14 +1,17 @@
-# mmdet/datasets/builder.py line 76 cp_cfg.pop('type')
-# 하단에 cp_cfg.pop('ann_file') 추가해줘야함.
-# 무슨 문제인지.. mmdetection에 issue올려바도 될 듯
+# Mixed dataset사용시 주의할점
 
-# TypeError: Albu: __init__() got an unexpected keyword argument 'img_scale'
+# 1. mmdet/datasets/builder.py line 76 cp_cfg.pop('type')
+# 하단에 cp_cfg.pop('ann_file') 추가해줘야함.
+# 무슨 문제인지.. mmdetection github에 issue올려바도 될 듯
+
+# 2. train.py에서 Mixed dataset을 받았을 때 수행하도록 구성하지 않았음.
+# 따라서 3번 fold이외의 fold에서 실험하고 싶다면, 해당 파일에서
+# train dataset의 ann_file을 수정해줘야함.
+
+# Error check : TypeError: Albu: __init__() got an unexpected keyword argument 'img_scale'
 # 이런 에러 뜨는 이유가, 뭔가 overwrite되서인 듯.
 # ㄴㄴ 아님 내가 계속 arg[parse로] 줄 떄 index번호인 2 이런식으로주는데
 # 실제 config에서는 안그래서 발생.
-
-# default setting is fold 3
-# if you want another fold modify traindataset
 
 # dataset settings
 dataset_type = 'CocoDataset'
