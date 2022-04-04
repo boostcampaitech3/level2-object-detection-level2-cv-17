@@ -1,6 +1,6 @@
 _base_ = [
     '../models/cascade_rcnn_swin_pafpn.py',
-    '../datasets/dataset_alb.py',
+    '../datasets/dataset_mix.py',
     '../schedules/schedule_1x.py', '../default_runtime.py'
 ]
 

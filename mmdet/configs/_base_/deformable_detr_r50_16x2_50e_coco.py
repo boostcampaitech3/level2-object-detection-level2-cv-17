@@ -1,5 +1,5 @@
 _base_ =[
-    '../datasets/dataset_alb.py',
+    '../datasets/dataset.py',
     '../schedules/schedule_1x.py', '../default_runtime.py'
 ]
 
@@ -8,9 +8,9 @@ model = dict(
     type='DeformableDETR',
     backbone=dict(
         type='SwinTransformer',
-        embed_dims=192,
-        depths=[2, 2, 18, 2],
-        num_heads=[6, 12, 24, 48],
+        embed_dims=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
         window_size=7,
         mlp_ratio=4,
         qkv_bias=True,
@@ -22,10 +22,10 @@ model = dict(
         out_indices=(0, 1, 2, 3),
         with_cp=False,
         convert_weights=True,
-        init_cfg=dict(type='Pretrained', checkpoint='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window7_224_22k.pth')),
-    neck=dict(
+        init_cfg=dict(type='Pretrained',checkpoint= 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth' )),
+        neck=dict(
         type='ChannelMapper',
-        in_channels=[192, 384, 768, 1536],
+        in_channels=[96, 192, 384, 768],
         kernel_size=1,
         out_channels=256,
         act_cfg=None,
@@ -91,80 +91,93 @@ model = dict(
             reg_cost=dict(type='BBoxL1Cost', weight=5.0, box_format='xywh'),
             iou_cost=dict(type='IoUCost', iou_mode='giou', weight=2.0))),
     test_cfg=dict(max_per_img=100))
-# img_norm_cfg = dict(
-#     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+
+img_norm_cfg = dict(
+    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 # # train_pipeline, NOTE the img_scale and the Pad's size_divisor is different
 # # from the default setting in mmdet.
-# train_pipeline = [
-#     dict(type='LoadImageFromFile'),
-#     dict(type='LoadAnnotations', with_bbox=True),
-#     dict(type='RandomFlip', flip_ratio=0.5),
-#     dict(
-#         type='AutoAugment',
-#         policies=[
-#             [
-#                 dict(
-#                     type='Resize',
-#                     img_scale=[(480, 1333), (512, 1333), (544, 1333),
-#                                (576, 1333), (608, 1333), (640, 1333),
-#                                (672, 1333), (704, 1333), (736, 1333),
-#                                (768, 1333), (800, 1333)],
-#                     multiscale_mode='value',
-#                     keep_ratio=True)
-#             ],
-#             [
-#                 dict(
-#                     type='Resize',
-#                     # The radio of all image in train dataset < 7
-#                     # follow the original impl
-#                     img_scale=[(400, 4200), (500, 4200), (600, 4200)],
-#                     multiscale_mode='value',
-#                     keep_ratio=True),
-#                 dict(
-#                     type='RandomCrop',
-#                     crop_type='absolute_range',
-#                     crop_size=(384, 600),
-#                     allow_negative_crop=True),
-#                 dict(
-#                     type='Resize',
-#                     img_scale=[(480, 1333), (512, 1333), (544, 1333),
-#                                (576, 1333), (608, 1333), (640, 1333),
-#                                (672, 1333), (704, 1333), (736, 1333),
-#                                (768, 1333), (800, 1333)],
-#                     multiscale_mode='value',
-#                     override=True,
-#                     keep_ratio=True)
-#             ]
-#         ]),
-#     dict(type='Normalize', **img_norm_cfg),
-#     dict(type='Pad', size_divisor=1),
-#     dict(type='DefaultFormatBundle'),
-#     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
-# ]
-# # test_pipeline, NOTE the Pad's size_divisor is different from the default
-# # setting (size_divisor=32). While there is little effect on the performance
-# # whether we use the default setting or use size_divisor=1.
-# test_pipeline = [
-#     dict(type='LoadImageFromFile'),
-#     dict(
-#         type='MultiScaleFlipAug',
-#         img_scale=(1333, 800),
-#         flip=False,
-#         transforms=[
-#             dict(type='Resize', keep_ratio=True),
-#             dict(type='RandomFlip'),
-#             dict(type='Normalize', **img_norm_cfg),
-#             dict(type='Pad', size_divisor=1),
-#             dict(type='ImageToTensor', keys=['img']),
-#             dict(type='Collect', keys=['img'])
-#         ])
-# ]
-# data = dict(
-#     samples_per_gpu=8,
-#     workers_per_gpu=2,
-#     train=dict(filter_empty_gt=False, pipeline=train_pipeline),
-#     val=dict(pipeline=test_pipeline),
-#     test=dict(pipeline=test_pipeline))
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', with_bbox=True),
+    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='AutoAugment',
+         policies=[
+             [
+                 dict(type='Resize',
+                      img_scale=[(480, 1333), (512, 1333), (544, 1333), (576, 1333),
+                                 (608, 1333), (640, 1333), (672, 1333), (704, 1333),
+                                 (736, 1333), (768, 1333), (800, 1333)],
+                      multiscale_mode='value',
+                      keep_ratio=True)
+             ],
+             [
+                 dict(type='Resize',
+                      img_scale=[(400, 1333), (500, 1333), (600, 1333)],
+                      multiscale_mode='value',
+                      keep_ratio=True),
+                 dict(type='RandomCrop',
+                      crop_type='absolute_range',
+                      crop_size=(384, 600),
+                      allow_negative_crop=True),
+                 dict(type='Resize',
+                      img_scale=[(480, 1333), (512, 1333), (544, 1333),
+                                 (576, 1333), (608, 1333), (640, 1333),
+                                 (672, 1333), (704, 1333), (736, 1333),
+                                 (768, 1333), (800, 1333)],
+                      multiscale_mode='value',
+                      override=True,
+                      keep_ratio=True)
+             ]
+         ]),
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size_divisor=1),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
+]
+# test_pipeline, NOTE the Pad's size_divisor is different from the default
+# setting (size_divisor=32). While there is little effect on the performance
+# whether we use the default setting or use size_divisor=1.
+val_pipeline = [
+        dict(type='LoadImageFromFile'),
+        dict(
+            type='MultiScaleFlipAug',
+            img_scale=(1024, 1024),
+            flip=False,
+            transforms=[
+                dict(type='Resize', keep_ratio=True),
+                dict(type='RandomFlip'),
+                dict(type='Normalize', **img_norm_cfg),
+                dict(type='Pad', size_divisor=1),
+                dict(type='ImageToTensor', keys=['img']),
+                dict(type='Collect', keys=['img']),
+            ])
+    ]
+
+test_pipeline = [
+        dict(type='LoadImageFromFile'),
+        dict(
+            type='MultiScaleFlipAug',
+            img_scale=[(1024, 1024),(512,512),(1333,800)],
+            flip= False,
+            flip_direction =  ["horizontal", "vertical" ,"diagonal"],
+            transforms=[
+                dict(type='Resize', keep_ratio=True),
+                dict(type='RandomFlip'),
+                dict(type='Normalize', **img_norm_cfg),
+                dict(type='Pad', size_divisor=1),
+                dict(type='ImageToTensor', keys=['img']),
+                dict(type='Collect', keys=['img']),
+            ])
+    ]
+data = dict(
+    samples_per_gpu=8,
+    workers_per_gpu=2,
+    train=dict(filter_empty_gt=False, pipeline=train_pipeline),
+    val=dict(pipeline=test_pipeline),
+    test=dict(pipeline=test_pipeline))
+
+
+
 # optimizer
 optimizer = dict(
     type='AdamW',
