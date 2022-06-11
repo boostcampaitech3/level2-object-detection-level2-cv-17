@@ -45,6 +45,7 @@
 * mmdetection
     * github : https://github.com/open-mmlab/mmdetection
     * documentation : https://mmdetection.readthedocs.io
+    * 구체적인 실행 방법은 mmdet 폴더 안의 README.md를 참고해주세요.
 
 * yolov5
     * github : https://github.com/ultralytics/yolov5
